@@ -34,7 +34,7 @@ col_time, col_sessions = st.columns([1, 2])
 
 with col_time:
     st.metric(label="📅 تاريخ اليوم", value=cairo_now.strftime("%Y-%m-%d"))
-    st.metric(label="⏰ الساعة الآن في مصر", value=cairo_now.strftime("%I:%M %p"))
+    st.metric(label="⏰ الساعة الآن in مصر", value=cairo_now.strftime("%I:%M %p"))
 
 with col_sessions:
     sydney_open = "🟢 مفتوحة الآن" if (current_hour >= 23 or current_hour < 8) else "🔴 مغلقة"
@@ -171,7 +171,7 @@ try:
         st.info(f"حجم العقد المقترح: {abs(lot_size):.2f} Lot")
 
 except Exception as e:
-    st.warning("السوق مغلق لعطلة نهاية الأسبوع حالياً. ستعمل الأرقام الفنية فور الافتتاح تلقائياً.")
+    st.warning("السوق مغلق حالياً. ستعمل الأرقام الفنية فور الافتتاح تلقائياً.")
 
 st.markdown("---")
 
@@ -240,24 +240,47 @@ components.html(chart_js, height=390)
 
 st.markdown("---")
 
-# --- 7. شريط الأخبار المتحرك والتدفقي التلقائي بالأسفل بالعربية ---
-st.markdown("### 📰 شريط الأخبار الاقتصادية المتدفقة (مباشر ومتحرك)")
-ticker_js = """
+# --- 7. شريط الأسعار والأخبار الأفقي المتحرك بالكامل أسفل المنصة (مضمون ومتوافق للجوال) ---
+st.markdown("### 📰 شريط حركة الأسواق والأخبار الاقتصادية الحية")
+ticker_horizontal_js = """
 <div class="tradingview-widget-container">
   <div class="tradingview-widget-container__widget"></div>
-  <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget/timeline.js" async>
+  <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget/tickers.js" async>
   {
-  "feedMode": "all_symbols",
-  "isTransparent": false,
-  "displayMode": "regular",
-  "width": "100%",
-  "height": 180,
+  "symbols": [
+    {
+      "proName": "FX_IDC:EURUSD",
+      "description": "اليورو / دولار"
+    },
+    {
+      "proName": "FX_IDC:GBPUSD",
+      "description": "إسترليني / دولار"
+    },
+    {
+      "proName": "FX_IDC:AUDUSD",
+      "description": "أسترالي / دولار"
+    },
+    {
+      "proName": "FX_IDC:USDJPY",
+      "description": "دولار / ين"
+    },
+    {
+      "proName": "OANDA:XAUUSD",
+      "description": "الذهب"
+    },
+    {
+      "proName": "NYMEX:CL1!",
+      "description": "النفط"
+    }
+  ],
   "colorTheme": "dark",
+  "isTransparent": false,
+  "showSymbolLogo": true,
   "locale": "ar"
 }
   </script>
 </div>
 """
-components.html(ticker_js, height=195)
+components.html(ticker_horizontal_js, height=120)
 
 st.caption("تنبيه مخاطر: تم تهيئة النظام والمواعيد تلقائياً وفقاً لتوقيت جمهورية مصر العربية وجلسات التداول العالمية.")
