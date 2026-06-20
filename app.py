@@ -1,37 +1,66 @@
 import streamlit as st
 import yfinance as yf
 import pandas as pd
+import streamlit.components.v1 as components
 
-# إعدادات الصفحة والمظهر
-st.set_page_config(page_title="منصة استخبارات AUD/USD", page_icon="💎", layout="wide")
+# إعدادات الصفحة والمظهر الداكن المتناسق
+st.set_page_config(page_title="منصة التداول والاستخبارات المتكاملة", page_icon="🎯", layout="wide")
 
-# تقليص حجم الخط ليناسب شاشة الموبايل تماماً
+# تقليص حجم الخط وتحسين مظهر عناصر الموبايل عبر CSS
 st.markdown("""
     <style>
-    html, body, [class*="css"] {
-        font-size: 13px !important;
-    }
-    h1 {
-        font-size: 1.5rem !important;
-    }
-    h3 {
-        font-size: 1.1rem !important;
-    }
-    .stMetric {
-        padding: 5px !important;
-    }
+    html, body, [class*="css"] { font-size: 13px !important; }
+    h1 { font-size: 1.6rem !important; }
+    h3 { font-size: 1.1rem !important; }
+    .stMetric { padding: 4px !important; }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("💎 منصة استخبارات وتداول زوج AUD/USD")
-st.write("تحليل رقمي داخلي ومباشر - خفيف وسريع جداً للموبايل")
+st.title("🎯 منصة الاستخبارات والتداول الرقمي المتكاملة")
 
-st.markdown("---")
+# --- دالة حساب مؤشر الدولار استرشادياً USDX ---
+@st.cache_data(ttl=60)
+def get_usdx_change():
+    try:
+        usdx = yf.Ticker("DX-Y.NYB") # رمز مؤشر الدولار في ياهو فاينانشال
+        h = usdx.history(period="2d")
+        if len(h) >= 2:
+            change = ((h['Close'].iloc[-1] - h['Close'].iloc[-2]) / h['Close'].iloc[-2]) * 100
+            return h['Close'].iloc[-1], change
+    except:
+        pass
+    return 100.0, 0.0
 
-# --- دالة جلب البيانات الأساسية للزوج وحجم التداول ---
+usdx_price, usdx_pct = get_usdx_change()
+usdx_color = "#22c55e" if usdx_pct >= 0 else "#ef4444"
+
+# عرض شريط مؤشر الدولار الاسترشادي في الأعلى
+st.markdown(f"""
+<div style="background-color:#1e293b; padding:8px; border-radius:8px; text-align:center; border-left: 5px solid {usdx_color};">
+    <span style="color:#94a3b8; font-weight:bold;">💵 مؤشر الدولار الأمريكي الاسترشادي (USDX): </span>
+    <span style="color:#ffffff; font-weight:bold;">{usdx_price:.2f}</span> 
+    <span style="color:{usdx_color}; font-weight:bold;">({usdx_pct:+.2f}%)</span>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown(" ")
+
+# --- 1. قائمة اختيار الأصول الديناميكية (الأصل المختار يغير كل شيء) ---
+assets_dict = {
+    "الدولار الأسترالي (AUD/USD)": {"symbol": "AUDUSD=X", "tv_symbol": "FX:AUDUSD", "pips": 30, "factor": 0.0001, "pip_mult": 10.0},
+    "الذهب (GOLD / XAUUSD)": {"symbol": "GC=F", "tv_symbol": "OANDA:XAUUSD", "pips": 50, "factor": 0.1, "pip_mult": 1.0},
+    "اليورو (EUR/USD)": {"symbol": "EURUSD=X", "tv_symbol": "FX:EURUSD", "pips": 20, "factor": 0.0001, "pip_mult": 10.0},
+    "الجنيه الإسترليني (GBP/USD)": {"symbol": "GBPUSD=X", "tv_symbol": "FX:GBPUSD", "pips": 25, "factor": 0.0001, "pip_mult": 10.0},
+    "الين الياباني (USD/JPY)": {"symbol": "JPY=X", "tv_symbol": "FX:USDJPY", "pips": 30, "factor": 0.01, "pip_mult": 9.0},
+}
+
+selected_asset_name = st.selectbox("🗂️ اختر العملة أو الأصل المراد تحليله وتداوله الآن:", list(assets_dict.keys()))
+asset = assets_dict[selected_asset_name]
+
+# --- 2. جلب المؤشرات والبيانات الحية للأصل المختار ---
 @st.cache_data(ttl=60) 
-def get_live_data():
-    ticker = yf.Ticker("AUDUSD=X")
+def get_asset_data(symbol):
+    ticker = yf.Ticker(symbol)
     df = ticker.history(period="2mo", interval="1h")
     
     delta = df['Close'].diff()
@@ -44,128 +73,119 @@ def get_live_data():
     df['Vol_Avg_24h'] = df['Volume'].rolling(window=24).mean()
     return df
 
-# --- دالة حساب قوة العملات برمجياً (جدول الكروسات الداخلي) ---
-@st.cache_data(ttl=60)
-def get_currency_strength():
-    # العملات المقارنة بالدولار
-    tickers = {
-        "EUR/USD": "EURUSD=X",
-        "GBP/USD": "GBPUSD=X",
-        "USD/JPY": "JPY=X",
-        "AUD/USD": "AUDUSD=X",
-        "USD/CAD": "CAD=X",
-        "USD/CHF": "CHF=X"
-    }
-    
-    strength_data = []
-    for name, sym in tickers.items():
-        try:
-            t = yf.Ticker(sym)
-            h = t.history(period="2d")
-            if len(h) >= 2:
-                close_today = h['Close'].iloc[-1]
-                close_yesterday = h['Close'].iloc[-2]
-                change = ((close_today - close_yesterday) / close_yesterday) * 100
-                strength_data.append({"الزوج": name, "السعر الحالي": f"{close_today:.4f}", "التغير اليومي": round(change, 2)})
-        except:
-            continue
-    return pd.DataFrame(strength_data)
-
 try:
-    data = get_live_data()
+    data = get_asset_data(asset["symbol"])
     current_price = data['Close'].iloc[-1]
     current_rsi = data['RSI'].iloc[-1]
     ema_50 = data['EMA_50'].iloc[-1]
     current_volume = data['Volume'].iloc[-1]
     avg_volume = data['Vol_Avg_24h'].iloc[-1]
     
-    pips_factor = 0.0001
-    sl_pips = 30
-    tp_pips = 60
+    sl_pips = asset["pips"]
     
+    # منطق الإشارات الفنية وحساب الأهداف تلقائياً
     is_strong_buy = current_rsi < 35 and current_price > ema_50
     is_strong_sell = current_rsi > 65 and current_price < ema_50
     
     if is_strong_buy:
-        signal_text = "🚨 تنبيه: فرصة شراء قوية جداً"
+        signal_text = f"🚨 تنبيه: فرصة شراء قوية على {selected_asset_name}"
         bg_color = "#155724"
         text_color = "#d4edda"
         entry_price = current_price
-        tp = entry_price + (tp_pips * pips_factor)
-        sl = entry_price - (sl_pips * pips_factor)
+        tp = entry_price + ((sl_pips * 2) * asset["factor"])
+        sl = entry_price - (sl_pips * asset["factor"])
     elif is_strong_sell:
-        signal_text = "🚨 تنبيه: فرصة بيع قوية جداً"
+        signal_text = f"🚨 تنبيه: فرصة بيع قوية على {selected_asset_name}"
         bg_color = "#721c24"
         text_color = "#f8d7da"
         entry_price = current_price
-        tp = entry_price - (tp_pips * pips_factor)
-        sl = entry_price + (sl_pips * pips_factor)
+        tp = entry_price - ((sl_pips * 2) * asset["factor"])
+        sl = entry_price + (sl_pips * asset["factor"])
     else:
-        signal_text = "⏳ الوضع الحالي: انتظار ومراقبة السلوك السعري"
+        signal_text = f"⏳ {selected_asset_name} : انتظار ومراقبة السلوك السعري"
         bg_color = "#333333"
         text_color = "#ffffff"
-        entry_price, tp, sl = current_price, current_price + (tp_pips * pips_factor), current_price - (sl_pips * pips_factor)
+        entry_price, tp, sl = current_price, current_price + (sl_pips * asset["factor"]), current_price - (sl_pips * asset["factor"])
 
-    # عرض التنبيه
+    # عرض مربع الإشارة التفاعلي
     st.markdown(f'<div style="background-color:{bg_color}; padding:10px; border-radius:8px; text-align:center;"><h3 style="color:{text_color}; margin:0;">{signal_text}</h3></div>', unsafe_allow_html=True)
     
-    # تنبيه حجم التداول
+    # تنبيه حجم التداول والسيولة الفوري للأصل
     if current_volume > (avg_volume * 1.5):
-        st.markdown(f'<div style="background-color:#854d0e; padding:6px; border-radius:6px; text-align:center; margin-top:5px;"><p style="color:#fef08a; margin:0; font-size:11px;">🔥 سيولة عالية: دخول مؤسسات وحيتان في السوق حالياً!</p></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="background-color:#854d0e; padding:6px; border-radius:6px; text-align:center; margin-top:5px;"><p style="color:#fef08a; margin:0; font-size:11px;">🔥 تنبيه سيولة: دخول غير طبيعي للمؤسسات والحيتان على هذا الأصل الآن!</p></div>', unsafe_allow_html=True)
 
-    # تقسيم الشاشة
+    # تفاصيل الأرقام وإدارة المخاطر
     col_left, col_right = st.columns([1, 1])
 
     with col_left:
-        st.markdown("### 📊 تفاصيل الإشارة الحالية")
-        st.metric(label="💵 السعر الحالي", value=f"{current_price:.5f}")
-        st.metric(label="📥 سعر الدخول المقترح", value=f"{entry_price:.5f}")
-        st.metric(label="🎯 الهدف (TP)", value=f"{tp:.5f}", delta=f"+{tp_pips} Pips")
-        st.metric(label="🛑 الاستوب (SL)", value=f"{sl:.5f}", delta=f"-{sl_pips} Pips")
+        st.markdown("### 📊 المستويات الرقمية المقترحة")
+        st.metric(label="💵 السعر المباشر", value=f"{current_price:.4f}")
+        st.metric(label="📥 نقطة الدخول", value=f"{entry_price:.4f}")
+        st.metric(label="🎯 أخذ الربح (TP)", value=f"{tp:.4f}")
+        st.metric(label="🛑 وقف الخسارة (SL)", value=f"{sl:.4f}", delta=f"المخاطرة: {sl_pips} نقطة")
 
     with col_right:
-        st.markdown("### 🧮 حاسبة اللوت الآمن")
-        balance = st.number_input("💰 رأس المال ($):", min_value=10, value=1000, step=100)
-        risk_percent = st.slider("⚠️ نسبة المخاطرة (%):", min_value=0.5, max_value=5.0, value=1.0, step=0.5)
+        st.markdown("### 🧮 حاسبة اللوت الذكية")
+        balance = st.number_input("💰 رأس مال الحساب ($):", min_value=10, value=1000, step=100)
+        risk_percent = st.slider("⚠️ حدد نسبة مخاطرتك (%):", min_value=0.5, max_value=5.0, value=1.0, step=0.5)
         
         risk_amount = balance * (risk_percent / 100)
+        # حساب حجم اللوت الدقيق حسب نوع الأصل ونقاط الستوب
         pip_value_needed = risk_amount / sl_pips
-        lot_size = pip_value_needed / 10.0
+        lot_size = pip_value_needed / asset["pip_mult"]
         
-        st.success(f"المبلغ المخاطر به: {risk_amount:.2f} $")
-        st.info(f"حجم العقد الآمن: {lot_size:.2f} Lot")
-
-    st.markdown("---")
-
-    # --- الجزء المصلح: جدول قوة العملات المبني داخلياً ---
-    st.markdown("### ⚖️ جدول حركة وقوة أزواج العملات اليوم (%)")
-    df_strength = get_currency_strength()
-    
-    if not df_strength.empty:
-        # تلوين الجدول وتنسيقه ليكون جذاباً وسهل القراءة
-        def color_change(val):
-            try:
-                val_float = float(val)
-                if val_float > 0: return 'color: #22c55e; font-weight: bold;'
-                elif val_float < 0: return 'color: #ef4444; font-weight: bold;'
-            except:
-                pass
-            return ''
-            
-        st.dataframe(df_strength.style.applymap(color_change, subset=['التغير اليومي']), use_container_width=True, hide_index=True)
-        st.caption("💡 طريقة القراءة: إذا كان زوج AUD/USD وزوج EUR/USD باللون الأخضر، فالـ USD ضعيف والـ AUD قوي (فرصة شراء قوية للـ AUD).")
-    else:
-        st.warning("جاري سحب التغيرات اليومية للعملات...")
+        st.success(f"المبلغ المالي المعرض للمخاطرة: {risk_amount:.2f} $")
+        st.info(f"حجم العقد المقترح: {abs(lot_size):.2f} Lot")
 
 except Exception as e:
-    st.error("السوق مغلق أو جاري تحديث اتصال السيرفر المالي...")
+    st.warning("السوق مغلق لعطلة نهاية الأسبوع حالياً. ستعمل الأرقام والجداول تلقائياً فور الافتتاح.")
 
 st.markdown("---")
 
-# روابط سريعة معربة للأخبار والشارت لمنع المشاكل الأمنية على الموبايل
-st.markdown("### 🔗 روابط سريعة معربة ومستقرة")
-b1, b2 = st.columns(2)
-with b1:
-    st.link_button("📅 افتح المفكرة الاقتصادية المعربة (موقع خارجي)", "https://ar.tradingview.com/economic-calendar/")
-with b2:
-    st.link_button("📈 افتح شارت AUD/USD التفاعلي الكامل", "https://ar.tradingview.com/chart/?symbol=FX%3AAUDUSD")
+# --- 3. لسان الشاشات المدمجة داخل التطبيق (دون روابط خارجية) وبكود جافاسكريبت متوافق للموبايل ---
+st.markdown("### 📈 الرسوم البيانية الحية والمفكرة الاقتصادية المعربة")
+
+tab_chart, tab_news = st.tabs(["📊 الشارت الحي المباشر للأصل", "📅 المفكرة الاقتصادية والبيانات الاقتصادية"])
+
+with tab_chart:
+    # الشارت الحي يتغير تلقائياً بتغير الأصل المختار من الأعلى
+    chart_js = f"""
+    <div class="tradingview-widget-container" style="height:380px;">
+      <div id="tv_chart_container" style="height:380px;"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+      <script type="text/javascript">
+      new TradingView.widget({{
+        "autosize": true,
+        "symbol": "{asset['tv_symbol']}",
+        "interval": "60",
+        "timezone": "Etc/UTC",
+        "theme": "dark",
+        "style": "1",
+        "locale": "ar",
+        "container_id": "tv_chart_container"
+      }});
+      </script>
+    </div>
+    """
+    components.html(chart_chart_js:=chart_js, height=390)
+
+with tab_news:
+    # المفكرة الاقتصادية معربة ومدمجة لتعمل على متصفحات الموبايل دون اختفاء
+    news_js = """
+    <div class="tradingview-widget-container" style="height:380px;">
+      <div class="tradingview-widget-container__widget"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget/events.js" async>
+      {
+      "width": "100%",
+      "height": 380,
+      "colorTheme": "dark",
+      "isTransparent": false,
+      "locale": "ar",
+      "importanceFilter": "0,1"
+    }
+      </script>
+    </div>
+    """
+    components.html(news_js, height=390)
+
+st.caption("تنبيه مخاطر: تم تهيئة الأكواد لتعمل بشكل مدمج ومتوافق مع شاشات الهواتف ومتصفحاتها.")
