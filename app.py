@@ -5,32 +5,30 @@ import pandas as pd
 # إعدادات الصفحة والمظهر
 st.set_page_config(page_title="منصة استخبارات AUD/USD", page_icon="💎", layout="wide")
 
-# تقليص حجم الخط ليناسب شاشة الموبايل
+# تقليص حجم الخط ليناسب شاشة الموبايل تماماً
 st.markdown("""
     <style>
     html, body, [class*="css"] {
         font-size: 13px !important;
     }
     h1 {
-        font-size: 1.6rem !important;
+        font-size: 1.5rem !important;
     }
     h3 {
         font-size: 1.1rem !important;
     }
-    div.stButton > button {
-        width: 100%;
-        border-radius: 8px;
-        font-weight: bold;
+    .stMetric {
+        padding: 5px !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
 st.title("💎 منصة استخبارات وتداول زوج AUD/USD")
-st.write("تحليل فني + سيولة وحجم + إدارة مخاطر + أدوات حية للموبايل")
+st.write("تحليل رقمي داخلي ومباشر - خفيف وسريع جداً للموبايل")
 
 st.markdown("---")
 
-# --- 1. جلب البيانات الحية وحساب المؤشرات ---
+# --- دالة جلب البيانات الأساسية للزوج وحجم التداول ---
 @st.cache_data(ttl=60) 
 def get_live_data():
     ticker = yf.Ticker("AUDUSD=X")
@@ -44,8 +42,34 @@ def get_live_data():
     
     df['EMA_50'] = df['Close'].ewm(span=50, adjust=False).mean()
     df['Vol_Avg_24h'] = df['Volume'].rolling(window=24).mean()
-    
     return df
+
+# --- دالة حساب قوة العملات برمجياً (جدول الكروسات الداخلي) ---
+@st.cache_data(ttl=60)
+def get_currency_strength():
+    # العملات المقارنة بالدولار
+    tickers = {
+        "EUR/USD": "EURUSD=X",
+        "GBP/USD": "GBPUSD=X",
+        "USD/JPY": "JPY=X",
+        "AUD/USD": "AUDUSD=X",
+        "USD/CAD": "CAD=X",
+        "USD/CHF": "CHF=X"
+    }
+    
+    strength_data = []
+    for name, sym in tickers.items():
+        try:
+            t = yf.Ticker(sym)
+            h = t.history(period="2d")
+            if len(h) >= 2:
+                close_today = h['Close'].iloc[-1]
+                close_yesterday = h['Close'].iloc[-2]
+                change = ((close_today - close_yesterday) / close_yesterday) * 100
+                strength_data.append({"الزوج": name, "السعر الحالي": f"{close_today:.4f}", "التغير اليومي": round(change, 2)})
+        except:
+            continue
+    return pd.DataFrame(strength_data)
 
 try:
     data = get_live_data()
@@ -82,26 +106,25 @@ try:
         text_color = "#ffffff"
         entry_price, tp, sl = current_price, current_price + (tp_pips * pips_factor), current_price - (sl_pips * pips_factor)
 
+    # عرض التنبيه
     st.markdown(f'<div style="background-color:{bg_color}; padding:10px; border-radius:8px; text-align:center;"><h3 style="color:{text_color}; margin:0;">{signal_text}</h3></div>', unsafe_allow_html=True)
     
-    st.markdown(" ")
+    # تنبيه حجم التداول
     if current_volume > (avg_volume * 1.5):
-        st.markdown(f'<div style="background-color:#854d0e; padding:8px; border-radius:6px; text-align:center;"><p style="color:#fef08a; margin:0; font-size:11px;">🔥 سيولة عالية: دخول حيتان ومؤسسات! حجم التداول الحالي أعلى من المتوسط بـ 150%+.</p></div>', unsafe_allow_html=True)
-    else:
-        st.markdown(f'<div style="background-color:#1e293b; padding:8px; border-radius:6px; text-align:center;"><p style="color:#94a3b8; margin:0; font-size:11px;">ℹ️ حجم التداول والسيولة ضمن المعدلات الطبيعية الهادئة.</p></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="background-color:#854d0e; padding:6px; border-radius:6px; text-align:center; margin-top:5px;"><p style="color:#fef08a; margin:0; font-size:11px;">🔥 سيولة عالية: دخول مؤسسات وحيتان في السوق حالياً!</p></div>', unsafe_allow_html=True)
 
     # تقسيم الشاشة
     col_left, col_right = st.columns([1, 1])
 
     with col_left:
-        st.markdown("### 📊 تفاصيل التوصية")
+        st.markdown("### 📊 تفاصيل الإشارة الحالية")
         st.metric(label="💵 السعر الحالي", value=f"{current_price:.5f}")
-        st.metric(label="📥 سعر الدخول", value=f"{entry_price:.5f}")
-        st.metric(label="🎯 أخذ الربح (TP)", value=f"{tp:.5f}", delta=f"➕ {tp_pips} Pips")
-        st.metric(label="🛑 وقف الخسارة (SL)", value=f"{sl:.5f}", delta=f"➖ {sl_pips} Pips")
+        st.metric(label="📥 سعر الدخول المقترح", value=f"{entry_price:.5f}")
+        st.metric(label="🎯 الهدف (TP)", value=f"{tp:.5f}", delta=f"+{tp_pips} Pips")
+        st.metric(label="🛑 الاستوب (SL)", value=f"{sl:.5f}", delta=f"-{sl_pips} Pips")
 
     with col_right:
-        st.markdown("### 🧮 حاسبة حجم اللوت")
+        st.markdown("### 🧮 حاسبة اللوت الآمن")
         balance = st.number_input("💰 رأس المال ($):", min_value=10, value=1000, step=100)
         risk_percent = st.slider("⚠️ نسبة المخاطرة (%):", min_value=0.5, max_value=5.0, value=1.0, step=0.5)
         
@@ -112,27 +135,37 @@ try:
         st.success(f"المبلغ المخاطر به: {risk_amount:.2f} $")
         st.info(f"حجم العقد الآمن: {lot_size:.2f} Lot")
 
+    st.markdown("---")
+
+    # --- الجزء المصلح: جدول قوة العملات المبني داخلياً ---
+    st.markdown("### ⚖️ جدول حركة وقوة أزواج العملات اليوم (%)")
+    df_strength = get_currency_strength()
+    
+    if not df_strength.empty:
+        # تلوين الجدول وتنسيقه ليكون جذاباً وسهل القراءة
+        def color_change(val):
+            try:
+                val_float = float(val)
+                if val_float > 0: return 'color: #22c55e; font-weight: bold;'
+                elif val_float < 0: return 'color: #ef4444; font-weight: bold;'
+            except:
+                pass
+            return ''
+            
+        st.dataframe(df_strength.style.applymap(color_change, subset=['التغير اليومي']), use_container_width=True, hide_index=True)
+        st.caption("💡 طريقة القراءة: إذا كان زوج AUD/USD وزوج EUR/USD باللون الأخضر، فالـ USD ضعيف والـ AUD قوي (فرصة شراء قوية للـ AUD).")
+    else:
+        st.warning("جاري سحب التغيرات اليومية للعملات...")
+
 except Exception as e:
-    st.error("جاري تحديث البيانات المالية... يرجى إعادة المحاولة.")
+    st.error("السوق مغلق أو جاري تحديث اتصال السيرفر المالي...")
 
 st.markdown("---")
 
-# --- 2. قسم الأدوات الذكية المصلح للموبايل (روابط صاروخية مباشرة) ---
-st.markdown("### 🛠️ أدوات التداول الحية الفورية (عربي)")
-st.write("اضغط على أي أداة لفتحها فوراً باللغة العربية وبشكل صحيح دون حظر من المتصفح:")
-
-btn_col1, btn_col2, btn_col3 = st.columns(3)
-
-with btn_col1:
-    # رابط جدول تقاطعات وقوة العملات الكبرى
-    st.link_button("🔀 افتح جدول قوة العملات (Cross Rates)", "https://ar.tradingview.com/markets/currencies/cross-rates-overview/")
-
-with btn_col2:
-    # رابط المفكرة الاقتصادية المعربة بالكامل
-    st.link_button("📅 افتح المفكرة الاقتصادية (الأخبار اليومية)", "https://ar.tradingview.com/economic-calendar/")
-
-with btn_col3:
-    # رابط الشارت المباشر لزوج AUD/USD بكامل أدوات التحليل
-    st.link_button("📈 افتح الشارت التفاعلي المباشر (AUD/USD)", "https://ar.tradingview.com/chart/?symbol=FX%3AAUDUSD")
-
-st.caption("ملاحظة للموبايل: تم تحويل الشاشات المعطلة برمجياً إلى أزرار ربط مباشر لضمان استقرار عمل التطبيق وسرعة تحديث البيانات الاقتصادية.")
+# روابط سريعة معربة للأخبار والشارت لمنع المشاكل الأمنية على الموبايل
+st.markdown("### 🔗 روابط سريعة معربة ومستقرة")
+b1, b2 = st.columns(2)
+with b1:
+    st.link_button("📅 افتح المفكرة الاقتصادية المعربة (موقع خارجي)", "https://ar.tradingview.com/economic-calendar/")
+with b2:
+    st.link_button("📈 افتح شارت AUD/USD التفاعلي الكامل", "https://ar.tradingview.com/chart/?symbol=FX%3AAUDUSD")
