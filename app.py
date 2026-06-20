@@ -37,8 +37,6 @@ with col_time:
     st.metric(label="⏰ الساعة الآن في مصر", value=cairo_now.strftime("%I:%M %p"))
 
 with col_sessions:
-    # تحديد حالة الجلسات برمجياً بناءً على توقيت مصر الفعلي
-    # (مواعيد تقريبية عامة بتوقيت القاهرة)
     sydney_open = "🟢 مفتوحة الآن" if (current_hour >= 23 or current_hour < 8) else "🔴 مغلقة"
     tokyo_open = "🟢 مفتوحة الآن" if (current_hour >= 2 or current_hour < 11) else "🔴 مغلقة"
     london_open = "🟢 مفتوحة الآن" if (current_hour >= 9 and current_hour < 18) else "🔴 مغلقة"
@@ -93,7 +91,7 @@ assets_dict = {
     "اليورو مقابل الجنيه الإسترليني (EUR/GBP)": {"symbol": "EURGBP=X", "tv_symbol": "FX:EURGBP", "pips": 20, "factor": 0.0001, "pip_mult": 12.0},
     "اليورو مقابل الين (EUR/JPY)": {"symbol": "EURJPY=X", "tv_symbol": "FX:EURJPY", "pips": 35, "factor": 0.01, "pip_mult": 9.0},
     "الباوند مقابل الين (GBP/JPY)": {"symbol": "GBPJPY=X", "tv_symbol": "FX:GBPJPY", "pips": 40, "factor": 0.01, "pip_mult": 9.0},
-    "الالنفط الخام الأمريكي (CRUDE OIL)": {"symbol": "CL=F", "tv_symbol": "NYMEX:CL1!", "pips": 40, "factor": 0.01, "pip_mult": 10.0},
+    "النفط الخام الأمريكي (CRUDE OIL)": {"symbol": "CL=F", "tv_symbol": "NYMEX:CL1!", "pips": 40, "factor": 0.01, "pip_mult": 10.0},
     "البيتكوين (BTC/USD)": {"symbol": "BTC-USD", "tv_symbol": "BINANCE:BTCUSDT", "pips": 500, "factor": 1.0, "pip_mult": 0.1}
 }
 
@@ -177,7 +175,7 @@ except Exception as e:
 
 st.markdown("---")
 
-# --- 5. جدول قوة وتقاطعات العملات الكبرى الداخلي والمضمون للموبايل ---
+# --- 5. جدول قوة وتقاطعات العملات الكبرى الداخلي ---
 st.markdown("### ⚖️ جدول حركة وتقاطعات أزواج العملات اليوم (%)")
 
 @st.cache_data(ttl=60)
@@ -218,7 +216,7 @@ except:
 
 st.markdown("---")
 
-# --- 6. عرض الشارت المنفصل والمفكرة المنفصلة بالكامل تحت بعضها ---
+# --- 6. عرض الشارت المنفصل المدمج ---
 st.markdown("### 📈 الرسوم البيانية الحية (مباشر ومدمج)")
 chart_js = f"""
 <div class="tradingview-widget-container" style="height:380px;">
@@ -242,22 +240,24 @@ components.html(chart_js, height=390)
 
 st.markdown("---")
 
-st.markdown("### 📅 المفكرة الاقتصادية والبيانات الاقتصادية (منفصلة ومعربة بالكامل)")
-news_js = """
-<div class="tradingview-widget-container" style="height:420px;">
+# --- 7. شريط الأخبار المتحرك والتدفقي التلقائي بالأسفل بالعربية ---
+st.markdown("### 📰 شريط الأخبار الاقتصادية المتدفقة (مباشر ومتحرك)")
+ticker_js = """
+<div class="tradingview-widget-container">
   <div class="tradingview-widget-container__widget"></div>
-  <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget/events.js" async>
+  <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget/timeline.js" async>
   {
-  "width": "100%",
-  "height": 420,
-  "colorTheme": "dark",
+  "feedMode": "all_symbols",
   "isTransparent": false,
-  "locale": "ar",
-  "importanceFilter": "0,1"
+  "displayMode": "regular",
+  "width": "100%",
+  "height": 180,
+  "colorTheme": "dark",
+  "locale": "ar"
 }
   </script>
 </div>
 """
-components.html(news_js, height=430)
+components.html(ticker_js, height=195)
 
 st.caption("تنبيه مخاطر: تم تهيئة النظام والمواعيد تلقائياً وفقاً لتوقيت جمهورية مصر العربية وجلسات التداول العالمية.")
