@@ -1,35 +1,36 @@
 import streamlit as st
 import yfinance as yf
 import pandas as pd
-import streamlit.components.v1 as components
 
-# إعدادات الصفحة الواسعة والمظهر الداكن الافتراضي
+# إعدادات الصفحة والمظهر
 st.set_page_config(page_title="منصة استخبارات AUD/USD", page_icon="💎", layout="wide")
 
-# تقليص حجم الخط الرئيسي عبر CSS مدمج
+# تقليص حجم الخط ليناسب شاشة الموبايل
 st.markdown("""
     <style>
     html, body, [class*="css"] {
-        font-size: 14px !important;
+        font-size: 13px !important;
     }
     h1 {
-        font-size: 1.8rem !important;
-    }
-    h2 {
-        font-size: 1.4rem !important;
+        font-size: 1.6rem !important;
     }
     h3 {
-        font-size: 1.2rem !important;
+        font-size: 1.1rem !important;
+    }
+    div.stButton > button {
+        width: 100%;
+        border-radius: 8px;
+        font-weight: bold;
     }
     </style>
     """, unsafe_allow_html=True)
 
 st.title("💎 منصة استخبارات وتداول زوج AUD/USD")
-st.write("تحليل فني + سيولة وحجم + مفكرة اقتصادية معربة + جدول تقاطعات العملات + إدارة مخاطر")
+st.write("تحليل فني + سيولة وحجم + إدارة مخاطر + أدوات حية للموبايل")
 
 st.markdown("---")
 
-# --- 1. جلب البيانات الحية وحساب المؤشرات الفنية والسيولة ---
+# --- 1. جلب البيانات الحية وحساب المؤشرات ---
 @st.cache_data(ttl=60) 
 def get_live_data():
     ticker = yf.Ticker("AUDUSD=X")
@@ -68,7 +69,6 @@ try:
         entry_price = current_price
         tp = entry_price + (tp_pips * pips_factor)
         sl = entry_price - (sl_pips * pips_factor)
-        st.components.v1.html('<audio autoplay><source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav" type="audio/wav"></audio>', height=0)
     elif is_strong_sell:
         signal_text = "🚨 تنبيه: فرصة بيع قوية جداً"
         bg_color = "#721c24"
@@ -76,35 +76,32 @@ try:
         entry_price = current_price
         tp = entry_price - (tp_pips * pips_factor)
         sl = entry_price + (sl_pips * pips_factor)
-        st.components.v1.html('<audio autoplay><source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav" type="audio/wav"></audio>', height=0)
     else:
         signal_text = "⏳ الوضع الحالي: انتظار ومراقبة السلوك السعري"
         bg_color = "#333333"
         text_color = "#ffffff"
         entry_price, tp, sl = current_price, current_price + (tp_pips * pips_factor), current_price - (sl_pips * pips_factor)
 
-    st.markdown(f'<div style="background-color:{bg_color}; padding:12px; border-radius:8px; text-align:center;"><h3 style="color:{text_color}; margin:0;">{signal_text}</h3></div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="background-color:{bg_color}; padding:10px; border-radius:8px; text-align:center;"><h3 style="color:{text_color}; margin:0;">{signal_text}</h3></div>', unsafe_allow_html=True)
     
     st.markdown(" ")
     if current_volume > (avg_volume * 1.5):
-        st.markdown(f'<div style="background-color:#854d0e; padding:8px; border-radius:6px; text-align:center; border: 1px solid #fef08a;"><p style="color:#fef08a; margin:0; font-size:12px;">🔥 تنبيه سيولة: دخول حيتان ومؤسسات! الحجم الحالي أعلى بـ 150% من المتوسط.</p></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="background-color:#854d0e; padding:8px; border-radius:6px; text-align:center;"><p style="color:#fef08a; margin:0; font-size:11px;">🔥 سيولة عالية: دخول حيتان ومؤسسات! حجم التداول الحالي أعلى من المتوسط بـ 150%+.</p></div>', unsafe_allow_html=True)
     else:
-        st.markdown(f'<div style="background-color:#1e293b; padding:8px; border-radius:6px; text-align:center;"><p style="color:#94a3b8; margin:0; font-size:12px;">ℹ️ حجم التداول والسيولة ضمن المعدلات الطبيعية اليوم.</p></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="background-color:#1e293b; padding:8px; border-radius:6px; text-align:center;"><p style="color:#94a3b8; margin:0; font-size:11px;">ℹ️ حجم التداول والسيولة ضمن المعدلات الطبيعية الهادئة.</p></div>', unsafe_allow_html=True)
 
-    main_col1, main_col2 = st.columns([1, 1])
+    # تقسيم الشاشة
+    col_left, col_right = st.columns([1, 1])
 
-    with main_col1:
-        st.markdown("### 📊 تفاصيل التوصية الرقمية")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric(label="💵 السعر الحالي", value=f"{current_price:.5f}")
-            st.metric(label="🎯 أخذ الربح (TP)", value=f"{tp:.5f}", delta=f"➕ {tp_pips} Pips")
-        with col2:
-            st.metric(label="📥 سعر الدخول", value=f"{entry_price:.5f}")
-            st.metric(label="🛑 وقف الخسارة (SL)", value=f"{sl:.5f}", delta=f"➖ {sl_pips} Pips")
-        
-        st.markdown("---")
-        st.markdown("### 🧮 حاسبة حجم اللوت الآمن")
+    with col_left:
+        st.markdown("### 📊 تفاصيل التوصية")
+        st.metric(label="💵 السعر الحالي", value=f"{current_price:.5f}")
+        st.metric(label="📥 سعر الدخول", value=f"{entry_price:.5f}")
+        st.metric(label="🎯 أخذ الربح (TP)", value=f"{tp:.5f}", delta=f"➕ {tp_pips} Pips")
+        st.metric(label="🛑 وقف الخسارة (SL)", value=f"{sl:.5f}", delta=f"➖ {sl_pips} Pips")
+
+    with col_right:
+        st.markdown("### 🧮 حاسبة حجم اللوت")
         balance = st.number_input("💰 رأس المال ($):", min_value=10, value=1000, step=100)
         risk_percent = st.slider("⚠️ نسبة المخاطرة (%):", min_value=0.5, max_value=5.0, value=1.0, step=0.5)
         
@@ -112,84 +109,30 @@ try:
         pip_value_needed = risk_amount / sl_pips
         lot_size = pip_value_needed / 10.0
         
-        st.success(f"المبلغ المخاطر به: **{risk_amount:.2f} $**")
-        st.info(f"حجم العقد الموصى به: **{lot_size:.2f}** Lot")
-
-    with main_col2:
-        st.markdown("### 🔀 جدول تقاطعات وقوة العملات الكبرى (Cross Rates)")
-        cross_js_code = """
-        <div class="tradingview-widget-container" style="height:340px;">
-          <div class="tradingview-widget-container__widget"></div>
-          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget/forex-cross-rates.js" async>
-          {
-          "width": "100%",
-          "height": 340,
-          "currencies": ["AUD", "USD", "EUR", "GBP", "JPY", "CHF", "CAD"],
-          "isTransparent": false,
-          "colorTheme": "dark",
-          "locale": "ar"
-        }
-          </script>
-        </div>
-        """
-        components.html(cross_js_code, height=350)
+        st.success(f"المبلغ المخاطر به: {risk_amount:.2f} $")
+        st.info(f"حجم العقد الآمن: {lot_size:.2f} Lot")
 
 except Exception as e:
-    st.error("جاري تحميل البيانات الحية من السيرفر المالي... يرجى تحديث الصفحة.")
+    st.error("جاري تحديث البيانات المالية... يرجى إعادة المحاولة.")
 
 st.markdown("---")
 
-st.markdown("### 📈 التحليل البصري والمفكرة الاقتصادية المعربة")
-bot_col1, bot_col2 = st.columns([1.8, 1.2])
+# --- 2. قسم الأدوات الذكية المصلح للموبايل (روابط صاروخية مباشرة) ---
+st.markdown("### 🛠️ أدوات التداول الحية الفورية (عربي)")
+st.write("اضغط على أي أداة لفتحها فوراً باللغة العربية وبشكل صحيح دون حظر من المتصفح:")
 
-with bot_col1:
-    tab1, tab2, tab3 = st.tabs(["🕒 1 ساعة (1H)", "⏳ 4 ساعات (4H)", "📅 يومي (1D)"])
-    
-    def generate_tradingview_widget(interval):
-        return f"""
-        <div class="tradingview-widget-container" style="height:400px;">
-          <div id="tradingview_{interval}" style="height:400px;"></div>
-          <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-          <script type="text/javascript">
-          new TradingView.widget({{
-            "autosize": true,
-            "symbol": "FX:AUDUSD",
-            "interval": "{interval}",
-            "timezone": "Etc/UTC",
-            "theme": "dark",
-            "style": "1",
-            "locale": "ar",
-            "container_id": "tradingview_{interval}"
-          }});
-          </script>
-        </div>
-        """
-    with tab1:
-        components.html(generate_tradingview_widget("60"), height=410)
-    with tab2:
-        components.html(generate_tradingview_widget("240"), height=410)
-    with tab3:
-        components.html(generate_tradingview_widget("D"), height=410)
+btn_col1, btn_col2, btn_col3 = st.columns(3)
 
-with bot_col2:
-    # --- تعريب وضبط المفكرة الاقتصادية لتظهر باللغة العربية بالكامل ---
-    st.markdown("📅 **المفكرة الاقتصادية اليومية**")
-    cal_js_code = """
-    <div class="tradingview-widget-container" style="height:400px;">
-      <div class="tradingview-widget-container__widget"></div>
-      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget/events.js" async>
-      {
-      "width": "100%",
-      "height": 400,
-      "colorTheme": "dark",
-      "isTransparent": false,
-      "locale": "ar",
-      "importanceFilter": "0,1",
-      "currencyFilter": "USD,AUD"
-    }
-      </script>
-    </div>
-    """
-    components.html(cal_js_code, height=410)
+with btn_col1:
+    # رابط جدول تقاطعات وقوة العملات الكبرى
+    st.link_button("🔀 افتح جدول قوة العملات (Cross Rates)", "https://ar.tradingview.com/markets/currencies/cross-rates-overview/")
 
-st.caption("تنبيه مخاطر: هذه المنصة مطورة برمجياً للمساعدة التقنية ولا تعتبر توصية استثمارية مطلقة.")
+with btn_col2:
+    # رابط المفكرة الاقتصادية المعربة بالكامل
+    st.link_button("📅 افتح المفكرة الاقتصادية (الأخبار اليومية)", "https://ar.tradingview.com/economic-calendar/")
+
+with btn_col3:
+    # رابط الشارت المباشر لزوج AUD/USD بكامل أدوات التحليل
+    st.link_button("📈 افتح الشارت التفاعلي المباشر (AUD/USD)", "https://ar.tradingview.com/chart/?symbol=FX%3AAUDUSD")
+
+st.caption("ملاحظة للموبايل: تم تحويل الشاشات المعطلة برمجياً إلى أزرار ربط مباشر لضمان استقرار عمل التطبيق وسرعة تحديث البيانات الاقتصادية.")
