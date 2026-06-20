@@ -17,6 +17,7 @@ st.markdown("""
     h3 { font-size: 1.1rem !important; }
     .stMetric { padding: 4px !important; }
     .market-box { padding: 8px; border-radius: 6px; margin-bottom: 5px; text-align: center; font-size: 11px; font-weight: bold; }
+    .mt5-btn { display: block; width: 100%; background-color: #0284c7; color: white !important; text-align: center; padding: 12px; border-radius: 8px; font-weight: bold; text-decoration: none; margin-top: 15px; border: 1px solid #0369a1; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -25,7 +26,6 @@ st.title("🎯 منصة الاستخبارات والتداول الرقمي ا�
 # --- 1. قسم الوقت ومواعيد البورصات بتوقيت مصر وحالتها الحالية ---
 st.markdown("### 🕒 التوقيت الحالي ومراقبة الجلسات العالمية (بتوقيت مصر)")
 
-# جلب توقيت القاهرة الحالي
 cairo_tz = pytz.timezone('Africa/Cairo')
 cairo_now = datetime.now(cairo_tz)
 current_hour = cairo_now.hour
@@ -111,7 +111,6 @@ def get_asset_data(symbol):
     df['RSI'] = 100 - (100 / (1 + rs))
     
     df['EMA_50'] = df['Close'].ewm(span=50, adjust=False).mean()
-    df['Vol_Avg_24h'] = df['Volume'].rolling(window=24).mean()
     return df
 
 try:
@@ -155,6 +154,9 @@ try:
         st.metric(label="📥 نقطة الدخول", value=f"{entry_price:.4f}")
         st.metric(label="🎯 أخذ الربح (TP)", value=f"{tp:.4f}")
         st.metric(label="🛑 وقف الخسارة (SL)", value=f"{sl:.4f}", delta=f"المخاطرة: {sl_pips} نقطة")
+        
+        # زر التحويل إلى تطبيق MetaTrader 5
+        st.markdown('<a href="metatrader5://" class="mt5-btn">📲 فتح تطبيق MetaTrader 5 الآن</a>', unsafe_allow_html=True)
 
     with col_right:
         st.markdown("### 🧮 حاسبة اللوت الذكية")
@@ -207,8 +209,6 @@ try:
             except: pass
             return ''
         st.dataframe(df_strength.style.applymap(color_change, subset=['التغير اليومي']), use_container_width=True, hide_index=True)
-    else:
-        st.warning("جاري سحب التغيرات اليومية للعملات...")
 except:
     st.info("الجدول بانتظار حركة تداولات السوق الجديدة...")
 
@@ -238,30 +238,13 @@ components.html(chart_js, height=390)
 
 st.markdown("---")
 
-# --- 7. شريط الأسعار والمؤشرات التدفقي الأفقي (Ticker المضمون بنفس آلية الشارت) ---
-st.markdown("### 📊 شريط أسعار السلع والعملات العالمي المتحرك")
-ticker_horizontal_js = """
-<div class="tradingview-widget-container">
-  <div class="tradingview-widget-container__widget"></div>
-  <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget/tickers.js" async>
-  {
-  "symbols": [
-    {"proName": "FX_IDC:EURUSD", "description": "اليورو / دولار"},
-    {"proName": "FX_IDC:GBPUSD", "description": "إسترليني / دولار"},
-    {"proName": "FX_IDC:AUDUSD", "description": "أسترالي / دولار"},
-    {"proName": "FX_IDC:USDJPY", "description": "دولار / ين"},
-    {"proName": "OANDA:XAUUSD", "description": "الذهب / دولار"},
-    {"proName": "NYMEX:CL1!", "description": "النفط الخام"},
-    {"proName": "BINANCE:BTCUSDT", "description": "بيتكوين"}
-  ],
-  "colorTheme": "dark",
-  "isTransparent": false,
-  "showSymbolLogo": true,
-  "locale": "ar"
-}
-  </script>
-</div>
+# --- 7. قسم الأخبار المدمج داخل التطبيق بالكامل (Investing.com) ---
+st.markdown("### 📰 شاشة الأخبار الاقتصادية العاجلة والتحليلات (مدمجة بالداخل)")
+
+# تضمين مباشر وآمن لموقع الأخبار ليتصفحه المستخدم دون مغادرة التطبيق
+news_iframe = """
+<iframe src="https://sa.investing.com/news/forex-news" width="100%" height="500" style="border:none; border-radius:8px; background-color: #1e293b;"></iframe>
 """
-components.html(ticker_horizontal_js, height=80)
+components.html(news_iframe, height=510, scrolling=True)
 
 st.caption("تنبيه مخاطر: تم تهيئة النظام والمواعيد تلقائياً وفقاً لتوقيت جمهورية مصر العربية وجلسات التداول العالمية.")
