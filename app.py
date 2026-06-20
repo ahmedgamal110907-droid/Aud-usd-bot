@@ -7,7 +7,7 @@ import streamlit.components.v1 as components
 st.set_page_config(page_title="منصة استخبارات AUD/USD", page_icon="💎", layout="wide")
 
 st.title("💎 منصة استخبارات وتداول زوج AUD/USD المتكاملة")
-st.write("تحليل فني + سيولة وحجم + مفكرة اقتصادية + قوة العملات + إدارة مخاطر آمنة")
+st.write("تحليل فني + سيولة وحجم + مفكرة اقتصادية + جدول تقاطعات العملات + إدارة مخاطر آمنة")
 
 st.markdown("---")
 
@@ -41,13 +41,12 @@ try:
     avg_volume = data['Vol_Avg_24h'].iloc[-1]
     
     # منطق الإشارات ونقاط الدخول والخروج
-    is_strong_buy = current_rsi < 35 and current_price > ema_50
-    is_strong_sell = current_rsi > 65 and current_price < ema_50
-    
-    # حساب النقاط الافتراضية
     pips_factor = 0.0001
     sl_pips = 30
     tp_pips = 60
+    
+    is_strong_buy = current_rsi < 35 and current_price > ema_50
+    is_strong_sell = current_rsi > 65 and current_price < ema_50
     
     if is_strong_buy:
         signal_text = "🚨 تنبيه: فرصة شراء قوية جداً"
@@ -81,7 +80,7 @@ try:
     else:
         st.markdown(f'<div style="background-color:#1e293b; padding:12px; border-radius:8px; text-align:center;"><p style="color:#94a3b8; margin:0;">ℹ️ حجم التداول مستقر وحركة السيولة طبيعية حالياً ({current_volume:,.0f} / المتوسط: {avg_volume:,.0f})</p></div>', unsafe_allow_html=True)
 
-    # تقسيم الشاشة إلى جزأين: الأول للتوصية والأدوات، والثاني للشارتات والأخبار
+    # تقسيم الشاشة إلى جزأين: الأول للتوصية والأدوات، والثاني للكروسات المتقدمة
     main_col1, main_col2 = st.columns([1, 1])
 
     with main_col1:
@@ -95,29 +94,27 @@ try:
             st.metric(label="🛑 وقف الخسارة المقترح (SL)", value=f"{sl:.5f}", delta=f"➖ {sl_pips} Pips")
         
         st.markdown("---")
-        # --- المقترح الثالث: حاسبة حجم اللوت وإدارة المخاطر ---
+        # حاسبة حجم اللوت وإدارة المخاطر
         st.markdown("### 🧮 حاسبة حجم اللوت الآمن (إدارة مخاطر)")
         balance = st.number_input("💰 أدخل حجم حسابك المالي ($):", min_value=10, value=1000, step=100)
         risk_percent = st.slider("⚠️ حدد نسبة المخاطرة المقبولة في الصفقة (%):", min_value=0.5, max_value=5.0, value=1.0, step=0.5)
         
-        # حساب الحجم الآمن للوت الميكرو والستاندرد بناء على 30 نقطة ستوب لوز
         risk_amount = balance * (risk_percent / 100)
         pip_value_needed = risk_amount / sl_pips
-        lot_size = pip_value_needed / 10.0 # اللوت القياسي يعطي 10$ للنقطة
+        lot_size = pip_value_needed / 10.0
         
         st.success(f"💵 المبلغ المعرض للمخاطرة في هذه الصفقة: **{risk_amount:.2f} $**")
         st.info(f"👔 حجم العقد (Lot Size) الموصى به لصفقتك: **{lot_size:.2f}** لوت ستاندرد")
 
     with main_col2:
-        # --- المقترح الثاني: مقياس قوة العملات (Currency Strength Widgets via TradingView) ---
-        st.markdown("### ⚖️ مقياس قوة العملات اللحظي (المحرك الفني)")
-        # دمج ويدجت المقياس الفني للاسترالي والدولار
-        cs_widget = """
+        # --- الإضافة المطلوبة: جدول الـ Cross الحقيقي من TradingView لمقارنة قوتهم ضد كل العملات ---
+        st.markdown("### 🔀 جدول تقاطعات وقوة العملات الكبرى اليوم (Cross Rates)")
+        cross_widget = """
         <div class="tradingview-widget-container">
-          <iframe src="https://s.tradingview.com/embed-widget/technical-analysis/?locale=ar&symbol=FX%3AAUDUSD&interval=1h&width=100%25&height=380&theme=dark" width="100%" height="380" frameborder="0" allowtransparency="true" scrolling="no"></iframe>
+          <iframe src="https://s.tradingview.com/embed-widget/forex-cross-rates/?locale=ar&width=100%25&height=380&currencies=AUD%2CUSD%2CEUR%2CGBP%2CJPY%2CCHF%2CCAD&theme=dark" width="100%" height="380" frameborder="0" allowtransparency="true" scrolling="no"></iframe>
         </div>
         """
-        components.html(cs_widget, height=390)
+        components.html(cross_widget, height=390)
 
 except Exception as e:
     st.error("جاري تحميل البيانات الحية من السيرفر المالي... يرجى تحديث الصفحة.")
@@ -129,7 +126,6 @@ st.markdown("### 📈 التحليل البصري والمفكرة الاقتص�
 bot_col1, bot_col2 = st.columns([2, 1])
 
 with bot_col1:
-    # دمج شارت TradingView التفاعلي للفريمات الثلاثة
     tab1, tab2, tab3 = st.tabs(["🕒 شارت 1 ساعة (1H)", "⏳ شارت 4 ساعات (4H)", "📅 شارت يومي (1D)"])
     
     def generate_tradingview_widget(interval):
@@ -159,7 +155,6 @@ with bot_col1:
         components.html(generate_tradingview_widget("D"), height=470)
 
 with bot_col2:
-    # --- المقترح الأول: المفكرة الاقتصادية الحية (Economic Calendar) ---
     st.markdown("📅 **أخبار الاقتصاد اليومية القوية**")
     cal_widget = """
     <div class="tradingview-widget-container">
