@@ -34,7 +34,7 @@ col_time, col_sessions = st.columns([1, 2])
 
 with col_time:
     st.metric(label="📅 تاريخ اليوم", value=cairo_now.strftime("%Y-%m-%d"))
-    st.metric(label="⏰ الساعة الآن in مصر", value=cairo_now.strftime("%I:%M %p"))
+    st.metric(label="⏰ الساعة الآن في مصر", value=cairo_now.strftime("%I:%M %p"))
 
 with col_sessions:
     sydney_open = "🟢 مفتوحة الآن" if (current_hour >= 23 or current_hour < 8) else "🔴 مغلقة"
@@ -119,8 +119,6 @@ try:
     current_price = data['Close'].iloc[-1]
     current_rsi = data['RSI'].iloc[-1]
     ema_50 = data['EMA_50'].iloc[-1]
-    current_volume = data['Volume'].iloc[-1]
-    avg_volume = data['Vol_Avg_24h'].iloc[-1]
     
     sl_pips = asset["pips"]
     
@@ -240,38 +238,21 @@ components.html(chart_js, height=390)
 
 st.markdown("---")
 
-# --- 7. شريط الأسعار والأخبار الأفقي المتحرك بالكامل أسفل المنصة (مضمون ومتوافق للجوال) ---
-st.markdown("### 📰 شريط حركة الأسواق والأخبار الاقتصادية الحية")
+# --- 7. شريط الأسعار والمؤشرات التدفقي الأفقي (Ticker المضمون بنفس آلية الشارت) ---
+st.markdown("### 📊 شريط أسعار السلع والعملات العالمي المتحرك")
 ticker_horizontal_js = """
 <div class="tradingview-widget-container">
   <div class="tradingview-widget-container__widget"></div>
   <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget/tickers.js" async>
   {
   "symbols": [
-    {
-      "proName": "FX_IDC:EURUSD",
-      "description": "اليورو / دولار"
-    },
-    {
-      "proName": "FX_IDC:GBPUSD",
-      "description": "إسترليني / دولار"
-    },
-    {
-      "proName": "FX_IDC:AUDUSD",
-      "description": "أسترالي / دولار"
-    },
-    {
-      "proName": "FX_IDC:USDJPY",
-      "description": "دولار / ين"
-    },
-    {
-      "proName": "OANDA:XAUUSD",
-      "description": "الذهب"
-    },
-    {
-      "proName": "NYMEX:CL1!",
-      "description": "النفط"
-    }
+    {"proName": "FX_IDC:EURUSD", "description": "اليورو / دولار"},
+    {"proName": "FX_IDC:GBPUSD", "description": "إسترليني / دولار"},
+    {"proName": "FX_IDC:AUDUSD", "description": "أسترالي / دولار"},
+    {"proName": "FX_IDC:USDJPY", "description": "دولار / ين"},
+    {"proName": "OANDA:XAUUSD", "description": "الذهب / دولار"},
+    {"proName": "NYMEX:CL1!", "description": "النفط الخام"},
+    {"proName": "BINANCE:BTCUSDT", "description": "بيتكوين"}
   ],
   "colorTheme": "dark",
   "isTransparent": false,
@@ -281,6 +262,6 @@ ticker_horizontal_js = """
   </script>
 </div>
 """
-components.html(ticker_horizontal_js, height=120)
+components.html(ticker_horizontal_js, height=80)
 
 st.caption("تنبيه مخاطر: تم تهيئة النظام والمواعيد تلقائياً وفقاً لتوقيت جمهورية مصر العربية وجلسات التداول العالمية.")
